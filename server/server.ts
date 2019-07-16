@@ -5,12 +5,12 @@ import {App} from '../types';
 class Core implements App {
 
     public port: number;
-    public exchanges: { name:string, url:string, path:string, rate: string }[] = [
+    
+    public exchanges: { name:string, url:string, path:string, rate: string}[] = [
         { "name": 'coindesk', "url": "https://api.coindesk.com/v1/bpi/currentprice/btc.json", "path": 'bpi.USD.rate', "rate": "" },
-        // { "name": 'blockchain', "url": "https://blockchain.info/ticker", "path": 'USD.last', "rate": "" },
-        // { "name": 'coinbase', "url": "https://api.coinbase.com/v2/prices/spot?currency=USD", "path": 'data.amount', "rate": "" },
-        // { "name": 'bitstamp', "url": "https://www.bitstamp.net/api/v2/ticker/btcusd/", "path": 'last', "rate": "" },
-        // { "name": 'bitpay', "url": "https://bitpay.com/api/rates", "path": 'bitpay[2].rate', "rate": "" }
+        { "name": 'blockchain', "url": "https://blockchain.info/ticker", "path": 'USD.last', "rate": "" },
+        { "name": 'coinbase', "url": "https://api.coinbase.com/v2/prices/spot?currency=USD", "path": 'data.amount', "rate": "" },
+        { "name": 'bitstamp', "url": "https://www.bitstamp.net/api/v2/ticker/btcusd/", "path": 'last', "rate": "" },
     ];
 
     constructor(port:number) {
@@ -19,14 +19,23 @@ class Core implements App {
 
     getRates() {
        for (const exchange of this.exchanges) {
-        request.get(exchange.url,function(error,response,body){
-            body = JSON.parse(body);
-            console.log(body);
-            //exchange.rate = this['body.'+ exchange.path]; 
-            //exchange.rate = exchange.rate.replace(',', '')
-            console.log(exchange.rate); 
-        })
+            request.get(exchange.url,function(error,response,body){
+                if (error) {
+                 console.log(error);        
+                } else {                   
+                    body = JSON.parse(body); 
+                    exchange.rate = core.formatPath(exchange.path,body);     
+                    exchange.rate = exchange.rate.toString().replace(',','')
+                    console.log(`${exchange.name}: ${exchange.rate}`);
+                }     
+            })
+        }    
     }
+
+    formatPath(path: string, obj: object) {
+        return path.split('.').reduce(function(prev: any, curr: any) {
+            return prev ? prev[curr] : null
+        }, obj || self)
     }
 
     onStart(){
@@ -35,8 +44,14 @@ class Core implements App {
             console.log(`Server started | ${this.port}`); 
         });
     };
-
 }
 let core = new Core(3000);
+
+setInterval(()=> {
 core.getRates();
+},1000)
+
 core.onStart();
+
+//Average rage
+//Socket

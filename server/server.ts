@@ -1,8 +1,15 @@
 import * as express from 'express';
 import * as request from 'request';
+import * as SocketIO from 'socket.io';
+import * as path from 'path';
+import * as http from 'http'
 import {App} from '../types';
 
 class Core implements App {
+    public app = express();
+    public publicPath = path.join(__dirname, '../public')
+    public server = http.createServer(this.app)
+    public io = SocketIO(this.server)
 
     public port: number;
     
@@ -23,13 +30,14 @@ class Core implements App {
                 if (error) {
                  console.log(error);        
                 } else {                   
-                    body = JSON.parse(body); 
+                    body = JSON.parse(body);   
                     exchange.rate = core.formatPath(exchange.path,body);     
                     exchange.rate = exchange.rate.toString().replace(',','')
                     console.log(`${exchange.name}: ${exchange.rate}`);
                 }     
             })
-        }    
+        }
+        //this.io.emit('rates', this.exchanges)    
     }
 
     formatPath(path: string, obj: object) {
@@ -38,9 +46,21 @@ class Core implements App {
         }, obj || self)
     }
 
-    onStart(){
-        const app = express();
-        app.listen(this.port, () => {
+    Socket(){
+        this.io.on('connection', (socket) => {
+            console.log(`User connected`);
+
+            socket.emit('rates', this.exchanges)
+
+            socket.on('disconnect', () => {
+                console.log(`User disconnected`);
+            })
+        })
+    }
+    onStart(){ 
+        core.Socket();
+        this.app.use(express.static(this.publicPath))
+        this.server.listen(this.port, () => {
             console.log(`Server started | ${this.port}`); 
         });
     };
@@ -49,9 +69,8 @@ let core = new Core(3000);
 
 setInterval(()=> {
 core.getRates();
-},1000)
+},10000)
 
 core.onStart();
 
-//Average rage
-//Socket
+//Promise

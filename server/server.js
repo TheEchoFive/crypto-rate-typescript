@@ -2,8 +2,15 @@
 exports.__esModule = true;
 var express = require("express");
 var request = require("request");
+var SocketIO = require("socket.io");
+var path = require("path");
+var http = require("http");
 var Core = /** @class */ (function () {
     function Core(port) {
+        this.app = express();
+        this.publicPath = path.join(__dirname, '../public');
+        this.server = http.createServer(this.app);
+        this.io = SocketIO(this.server);
         this.exchanges = [
             { "name": 'coindesk', "url": "https://api.coindesk.com/v1/bpi/currentprice/btc.json", "path": 'bpi.USD.rate', "rate": "" },
             { "name": 'blockchain', "url": "https://blockchain.info/ticker", "path": 'USD.last', "rate": "" },
@@ -30,16 +37,28 @@ var Core = /** @class */ (function () {
             var exchange = _a[_i];
             _loop_1(exchange);
         }
+        this.io.emit('rates', this.exchanges);
     };
     Core.prototype.formatPath = function (path, obj) {
         return path.split('.').reduce(function (prev, curr) {
             return prev ? prev[curr] : null;
         }, obj || self);
     };
+    Core.prototype.Socket = function () {
+        var _this = this;
+        this.io.on('connection', function (socket) {
+            console.log("User connected");
+            socket.emit('rates', _this.exchanges);
+            socket.on('disconnect', function () {
+                console.log("User disconnected");
+            });
+        });
+    };
     Core.prototype.onStart = function () {
         var _this = this;
-        var app = express();
-        app.listen(this.port, function () {
+        core.Socket();
+        this.app.use(express.static(this.publicPath));
+        this.server.listen(this.port, function () {
             console.log("Server started | " + _this.port);
         });
     };
@@ -49,7 +68,5 @@ var Core = /** @class */ (function () {
 var core = new Core(3000);
 setInterval(function () {
     core.getRates();
-}, 1000);
+}, 10000);
 core.onStart();
-//Average rage
-//Socket

@@ -40,9 +40,7 @@ class Core implements App {
             })
         }
         Promise.all([]).then(() => {
-            this.io.emit('rates',this.exchanges)
-            console.log('Send!');
-            
+            this.io.emit('rates',this.exchanges)      
         })    
     }
 

@@ -26,18 +26,24 @@ class Core implements App {
 
     getRates() {
        for (const exchange of this.exchanges) {
-            request.get(exchange.url,function(error,response,body){
-                if (error) {
-                 console.log(error);        
-                } else {                   
-                    body = JSON.parse(body);   
-                    exchange.rate = core.formatPath(exchange.path,body);     
-                    exchange.rate = exchange.rate.toString().replace(',','')
-                    console.log(`${exchange.name}: ${exchange.rate}`);
-                }     
+            new Promise((resolve, reject) => {
+                request.get(exchange.url,function(error,response,body) {
+                    if (error) {
+                        reject(error);
+                    } else {
+                            body = JSON.parse(body);   
+                            exchange.rate = core.formatPath(exchange.path,body);     
+                            exchange.rate = exchange.rate.toString().replace(',','') 
+                            resolve(exchange)                  
+                    }
+                })
             })
         }
-        //this.io.emit('rates', this.exchanges)    
+        Promise.all([]).then(() => {
+            this.io.emit('rates',this.exchanges)
+            console.log('Send!');
+            
+        })    
     }
 
     formatPath(path: string, obj: object) {
@@ -65,6 +71,7 @@ class Core implements App {
         });
     };
 }
+
 let core = new Core(3000);
 
 setInterval(()=> {
@@ -72,5 +79,3 @@ core.getRates();
 },10000)
 
 core.onStart();
-
-//Promise
